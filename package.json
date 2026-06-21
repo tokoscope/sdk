@@ -1,0 +1,26 @@
+{
+  "name": "tokoscope",
+  "version": "0.1.0",
+  "description": "Audit, compress and monitor your LLM token usage in 2 lines of code",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "test": "echo \"No tests yet\""
+  },
+  "keywords": [
+    "llm",
+    "openai",
+    "anthropic",
+    "tokens",
+    "optimization",
+    "cost",
+    "monitoring"
+  ],
+  "author": "Tokoscope",
+  "license": "MIT",
+  "homepage": "https://tokoscope.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tokoscope/tokoscope-sdk"
+  }
+}
