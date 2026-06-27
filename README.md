@@ -24,8 +24,14 @@ Tokoscope fixes that.
 
 ## Installation
 
+### JavaScript
 ```bash
 npm install tokoscope
+```
+
+### Python
+```bash
+pip install tokoscope
 ```
 
 ---
