@@ -34,6 +34,50 @@ function wrap(client, { apiKey, userId = null }) {
     }
   }
 
+  const clientType = client?.constructor?.name || ''
+
+  // ── Gemini ──────────────────────────────────────────────
+  if (clientType === 'GoogleGenerativeAI' || client?.apiKey !== undefined && client?.getGenerativeModel) {
+    const originalGetModel = client.getGenerativeModel.bind(client)
+    client.getGenerativeModel = function(params) {
+      const model = originalGetModel(params)
+      const modelName = params.model || 'gemini-2.0-flash'
+      const originalGenerate = model.generateContent.bind(model)
+      const originalGenerateStream = model.generateContentStream?.bind(model)
+
+      model.generateContent = async function(request) {
+        const prompt = typeof request === 'string'
+          ? request
+          : request?.contents?.map(c =>
+              Array.isArray(c.parts) ? c.parts.map(p => p.text || '').join(' ') : ''
+            ).join(' ') || ''
+
+        const cache = await checkCache(prompt, modelName)
+        if (cache.hit) {
+          console.log(`⚡ Tokoscope cache hit — saved ${cache.savedTokens} tokens ($${cache.savedCost?.toFixed(6)})`)
+          return cache.response
+        }
+
+        const result = await originalGenerate(request)
+        const usage = result?.response?.usageMetadata || {}
+        await track({
+          provider: 'gemini',
+          model: modelName,
+          inputTokens: usage.promptTokenCount || 0,
+          outputTokens: usage.candidatesTokenCount || 0,
+          prompt,
+          endpoint: modelName,
+          response: result
+        })
+        return result
+      }
+
+      return model
+    }
+    return client
+  }
+
+  // ── Anthropic ────────────────────────────────────────────
   const isAnthropic = typeof client.messages?.create === 'function' && !client.chat
 
   if (isAnthropic) {
@@ -59,29 +103,31 @@ function wrap(client, { apiKey, userId = null }) {
       })
       return result
     }
-  } else {
-    const originalCreate = client.chat.completions.create.bind(client.chat.completions)
-    client.chat.completions.create = async function(params) {
-      const prompt = params.messages?.map(m => m.content || '').join(' ')
+    return client
+  }
 
-      const cache = await checkCache(prompt, params.model)
-      if (cache.hit) {
-        console.log(`⚡ Tokoscope cache hit — saved ${cache.savedTokens} tokens ($${cache.savedCost?.toFixed(6)})`)
-        return cache.response
-      }
+  // ── OpenAI ───────────────────────────────────────────────
+  const originalCreate = client.chat.completions.create.bind(client.chat.completions)
+  client.chat.completions.create = async function(params) {
+    const prompt = params.messages?.map(m => m.content || '').join(' ')
 
-      const result = await originalCreate(params)
-      await track({
-        provider: 'openai',
-        model: params.model,
-        inputTokens: result.usage?.prompt_tokens || 0,
-        outputTokens: result.usage?.completion_tokens || 0,
-        prompt,
-        endpoint: params.model,
-        response: result
-      })
-      return result
+    const cache = await checkCache(prompt, params.model)
+    if (cache.hit) {
+      console.log(`⚡ Tokoscope cache hit — saved ${cache.savedTokens} tokens ($${cache.savedCost?.toFixed(6)})`)
+      return cache.response
     }
+
+    const result = await originalCreate(params)
+    await track({
+      provider: 'openai',
+      model: params.model,
+      inputTokens: result.usage?.prompt_tokens || 0,
+      outputTokens: result.usage?.completion_tokens || 0,
+      prompt,
+      endpoint: params.model,
+      response: result
+    })
+    return result
   }
 
   return client
