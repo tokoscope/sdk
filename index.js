@@ -34,10 +34,21 @@ function wrap(client, { apiKey, userId = null }) {
     }
   }
 
+  async function checkCacheAndLog(prompt, model, cacheLogFn) {
+    const cache = await checkCache(prompt, model)
+    if (cache.hit) {
+      const type = cache.cacheType === 'semantic' ? `semantic (${(cache.similarityScore * 100).toFixed(1)}% match)` : 'exact'
+      console.log(`⚡ Tokoscope cache hit [${type}] — saved ${cache.savedTokens} tokens ($${cache.savedCost?.toFixed(6)})`)
+      return { hit: true, response: cache.response }
+    }
+    return { hit: false }
+  }
+
   const clientType = client?.constructor?.name || ''
+  const isGemini = clientType === 'GoogleGenerativeAI' || typeof client?.getGenerativeModel === 'function'
 
   // ── Gemini ──────────────────────────────────────────────
-  if (clientType === 'GoogleGenerativeAI' || client?.apiKey !== undefined && client?.getGenerativeModel) {
+  if (isGemini) {
     const originalGetModel = client.getGenerativeModel.bind(client)
     client.getGenerativeModel = function(params) {
       const model = originalGetModel(params)
@@ -54,7 +65,8 @@ function wrap(client, { apiKey, userId = null }) {
 
         const cache = await checkCache(prompt, modelName)
         if (cache.hit) {
-          console.log(`⚡ Tokoscope cache hit — saved ${cache.savedTokens} tokens ($${cache.savedCost?.toFixed(6)})`)
+          const type = cache.cacheType === 'semantic' ? `semantic (${(cache.similarityScore * 100).toFixed(1)}% match)` : 'exact'
+          console.log(`⚡ Tokoscope cache hit [${type}] — saved ${cache.savedTokens} tokens ($${cache.savedCost?.toFixed(6)})`)
           return cache.response
         }
 
@@ -87,7 +99,8 @@ function wrap(client, { apiKey, userId = null }) {
 
       const cache = await checkCache(prompt, params.model)
       if (cache.hit) {
-        console.log(`⚡ Tokoscope cache hit — saved ${cache.savedTokens} tokens ($${cache.savedCost?.toFixed(6)})`)
+        const type = cache.cacheType === 'semantic' ? `semantic (${(cache.similarityScore * 100).toFixed(1)}% match)` : 'exact'
+        console.log(`⚡ Tokoscope cache hit [${type}] — saved ${cache.savedTokens} tokens ($${cache.savedCost?.toFixed(6)})`)
         return cache.response
       }
 
