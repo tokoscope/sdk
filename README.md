@@ -48,6 +48,59 @@ const client = wrap(new OpenAI(), {
   apiKey: 'ts_live_...' // get your key at app.tokoscope.com
 })
 
+const response = await client.chat.completions.create({
+  model: 'gpt-4o',
+  messages: [{ role: 'user', content: 'Hello' }]
+})
+```
+
+### Anthropic
+
+```javascript
+import Anthropic from '@anthropic-ai/sdk'
+import { wrap } from 'tokoscope'
+
+const client = wrap(new Anthropic(), {
+  apiKey: 'ts_live_...'
+})
+
+const response = await client.messages.create({
+  model: 'claude-sonnet-4-6',
+  max_tokens: 1024,
+  messages: [{ role: 'user', content: 'Hello' }]
+})
+```
+
+### Gemini
+
+```javascript
+import { GoogleGenerativeAI } from '@google/generative-ai'
+import { wrap } from 'tokoscope'
+
+const genAI = wrap(new GoogleGenerativeAI('GEMINI_KEY'), {
+  apiKey: 'ts_live_...'
+})
+
+const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+const result = await model.generateContent('Hello')
+```
+
+That's it. Every API call is now tracked automatically.
+
+---
+
+## Quick start
+
+### OpenAI
+
+```javascript
+import OpenAI from 'openai'
+import { wrap } from 'tokoscope'
+
+const client = wrap(new OpenAI(), {
+  apiKey: 'ts_live_...' // get your key at app.tokoscope.com
+})
+
 // All your existing calls work unchanged
 const res = await client.chat.completions.create({
   model: 'gpt-4o',
@@ -135,13 +188,13 @@ Sign in at [app.tokoscope.com](https://app.tokoscope.com) to:
 
 ## Supported providers
 
-| Provider | Status |
-|---|---|
-| OpenAI | ✅ Supported |
-| Anthropic | ✅ Supported |
-| Gemini | 🔜 Coming soon |
-| Mistral | 🔜 Coming soon |
-| Ollama | 🔜 Coming soon |
+| Provider | JavaScript | Python |
+|---|---|---|
+| OpenAI | ✅ Supported | ✅ Supported |
+| Anthropic | ✅ Supported | ✅ Supported |
+| Gemini | ✅ Supported | ✅ Supported |
+| Mistral | 🔜 Coming soon | 🔜 Coming soon |
+| Ollama | 🔜 Coming soon | 🔜 Coming soon |
 
 ---
 
