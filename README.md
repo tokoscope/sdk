@@ -3,12 +3,13 @@
 > Audit, compress, and monitor your LLM token usage in 2 lines of code.
 
 [![npm version](https://img.shields.io/npm/v/tokoscope?color=00E5A0&style=flat-square)](https://www.npmjs.com/package/tokoscope)
+[![PyPI version](https://img.shields.io/pypi/v/tokoscope?color=00E5A0&style=flat-square)](https://pypi.org/project/tokoscope/)
 [![npm downloads](https://img.shields.io/npm/dm/tokoscope?color=00E5A0&style=flat-square)](https://www.npmjs.com/package/tokoscope)
 [![License: MIT](https://img.shields.io/badge/License-MIT-00E5A0.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-Tokoscope sits between your app and any LLM API. It tracks every call, scores your prompts for waste, compresses bloated inputs automatically, and shows you exactly where your token budget is going.
+Tokoscope sits between your app and any LLM API. It tracks every call, scores your prompts for waste, compresses bloated inputs automatically, caches responses semantically, and shows you exactly where your token budget is going.
 
-**Works with OpenAI and Anthropic out of the box.**
+**Works with OpenAI, Anthropic, and Gemini out of the box.**
 
 ---
 
@@ -38,7 +39,7 @@ pip install tokoscope
 
 ## Quick start
 
-### OpenAI
+### OpenAI (JavaScript)
 
 ```javascript
 import OpenAI from 'openai'
@@ -54,7 +55,7 @@ const response = await client.chat.completions.create({
 })
 ```
 
-### Anthropic
+### Anthropic (JavaScript)
 
 ```javascript
 import Anthropic from '@anthropic-ai/sdk'
@@ -71,7 +72,7 @@ const response = await client.messages.create({
 })
 ```
 
-### Gemini
+### Gemini (JavaScript)
 
 ```javascript
 import { GoogleGenerativeAI } from '@google/generative-ai'
@@ -85,59 +86,99 @@ const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 const result = await model.generateContent('Hello')
 ```
 
+### OpenAI (Python)
+
+```python
+from openai import OpenAI
+from tokoscope import wrap
+
+client = wrap(OpenAI(), api_key='ts_live_...', user_id='user_123')
+
+response = client.chat.completions.create(
+    model='gpt-4o',
+    messages=[{'role': 'user', 'content': 'Hello'}]
+)
+```
+
+### Anthropic (Python)
+
+```python
+from anthropic import Anthropic
+from tokoscope import wrap
+
+client = wrap(Anthropic(), api_key='ts_live_...')
+
+response = client.messages.create(
+    model='claude-sonnet-4-6',
+    max_tokens=1024,
+    messages=[{'role': 'user', 'content': 'Hello'}]
+)
+```
+
+### Gemini (Python)
+
+```python
+import google.generativeai as genai
+from tokoscope import wrap
+
+client = wrap(genai.GenerativeModel('gemini-2.5-flash'), api_key='ts_live_...')
+result = client.generate_content('Hello')
+```
+
 That's it. Every API call is now tracked automatically.
 
 ---
 
-## Quick start
+## Features
 
-### OpenAI
+### 🔭 Token usage dashboard
+Full visibility into token usage broken down by model, endpoint, provider, and end user. See exactly where your budget is going.
+
+### ✂️ Automatic prompt compression
+Prompts with high waste scores are automatically rewritten to their minimum effective form. Real example: 113 tokens → 8 tokens. 90% reduction. Same answer.
+
+### ⚡ Semantic caching
+Two-layer caching system:
+- **Exact match** — identical prompts return cached responses instantly
+- **Semantic match** — similar prompts (85%+ similarity) return cached responses using OpenAI embeddings
+
+```
+⚡ Tokoscope cache hit [semantic (89.3% match)] — saved 93 tokens ($0.000049)
+```
+
+Cache TTL: 7 days. Clear cache anytime from the dashboard.
+
+### 📊 Cost attribution
+Break down spend by feature, endpoint, user, or team. Know which part of your product is burning the most — and why.
+
+### 👤 Per-user tracking
+Pass a `userId` to track token usage per end user of your app:
 
 ```javascript
-import OpenAI from 'openai'
-import { wrap } from 'tokoscope'
-
+// JavaScript
 const client = wrap(new OpenAI(), {
-  apiKey: 'ts_live_...' // get your key at app.tokoscope.com
-})
-
-// All your existing calls work unchanged
-const res = await client.chat.completions.create({
-  model: 'gpt-4o',
-  messages: [{ role: 'user', content: 'Hello' }]
+  apiKey: 'ts_live_...',
+  userId: 'user_123'
 })
 ```
 
-### Anthropic
-
-```javascript
-import Anthropic from '@anthropic-ai/sdk'
-import { wrap } from 'tokoscope'
-
-const client = wrap(new Anthropic(), {
-  apiKey: 'ts_live_...'
-})
-
-const res = await client.messages.create({
-  model: 'claude-sonnet-4-6',
-  max_tokens: 1024,
-  messages: [{ role: 'user', content: 'Hello' }]
-})
+```python
+# Python
+client = wrap(OpenAI(), api_key='ts_live_...', user_id='user_123')
 ```
 
-That's it. Every API call is now tracked automatically.
+### 🚨 Budget alerts
+Set monthly spend thresholds. Get emailed before costs spike, not after the invoice lands.
 
----
+### 🔌 Async support (Python)
+Full async support for OpenAI and Anthropic:
 
-## What you get
-
-Once integrated, your [Tokoscope dashboard](https://app.tokoscope.com) shows:
-
-- **Token usage** broken down by model, endpoint, and provider
-- **Cost per request** calculated automatically using current pricing
-- **Waste score** for every prompt — flags redundant instructions, bloated context, and repeated phrases
-- **Auto-compression** — prompts with high waste scores are automatically rewritten to their minimum effective form
-- **Budget alerts** — get notified before costs spike, not after the invoice lands
+```python
+response = await client.chat.completions.acreate(
+    model='gpt-4o',
+    messages=[{'role': 'user', 'content': 'Hello'}]
+)
+```
 
 ---
 
@@ -146,10 +187,10 @@ Once integrated, your [Tokoscope dashboard](https://app.tokoscope.com) shows:
 **Original prompt:** 113 tokens
 
 ```
-Please note that it is very important that you make sure to respond 
-to my question. As an AI, I want you to please make sure that you 
-understand that I need you to help me. Make sure to note that what 
-I am asking you is the following question which is important: 
+Please note that it is very important that you make sure to respond
+to my question. As an AI, I want you to please make sure that you
+understand that I need you to help me. Make sure to note that what
+I am asking you is the following question which is important:
 What is the capital of France?
 ```
 
@@ -160,6 +201,18 @@ What is the capital of France? Answer concisely.
 ```
 
 **Result:** 90% token reduction. Same answer.
+
+---
+
+## Supported providers
+
+| Provider | JavaScript | Python |
+|---|---|---|
+| OpenAI | ✅ v0.5.0+ | ✅ v0.6.0+ |
+| Anthropic | ✅ v0.5.0+ | ✅ v0.6.0+ |
+| Gemini | ✅ v0.4.0+ | ✅ v0.4.0+ |
+| Mistral | 🔜 Coming soon | 🔜 Coming soon |
+| Ollama | 🔜 Coming soon | 🔜 Coming soon |
 
 ---
 
@@ -180,27 +233,48 @@ What is the capital of France? Answer concisely.
 Sign in at [app.tokoscope.com](https://app.tokoscope.com) to:
 - Get your API key
 - View live token usage and costs
-- Review prompt waste scores
-- See compressed vs original prompts
+- Review prompt waste scores and compressed versions
+- See per-user token breakdown
+- Monitor cache hit rate and savings
 - Set budget alerts
 
 ---
 
-## Supported providers
+## Changelog
 
-| Provider | JavaScript | Python |
-|---|---|---|
-| OpenAI | ✅ Supported | ✅ Supported |
-| Anthropic | ✅ Supported | ✅ Supported |
-| Gemini | ✅ Supported | ✅ Supported |
-| Mistral | 🔜 Coming soon | 🔜 Coming soon |
-| Ollama | 🔜 Coming soon | 🔜 Coming soon |
+### v0.6.0 (Python)
+- Semantic caching with OpenAI embeddings
+- Async support via `acreate()`
+- Cache hit logging with similarity scores
+
+### v0.5.0
+- Semantic caching (85%+ similarity threshold)
+- Two-layer cache: exact match + semantic match
+- Cache hit type shown in console logs
+
+### v0.4.0
+- Gemini support (JavaScript + Python)
+- Gemini pricing for all models
+
+### v0.3.0
+- 7-day exact match caching
+- Cache hit rate and savings on dashboard
+- Clear cache from settings
+
+### v0.2.0
+- Per-user token tracking via `userId`
+- Users page in dashboard
+
+### v0.1.0
+- Initial release
+- OpenAI + Anthropic support
+- Token tracking, waste scoring, prompt compression
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT
 
 ---
 
@@ -209,4 +283,5 @@ MIT — see [LICENSE](LICENSE)
 - [Website](https://tokoscope.com)
 - [Dashboard](https://app.tokoscope.com)
 - [npm package](https://www.npmjs.com/package/tokoscope)
+- [PyPI package](https://pypi.org/project/tokoscope/)
 - [Contact](mailto:hello@tokoscope.com)
