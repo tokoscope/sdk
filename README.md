@@ -180,9 +180,10 @@ response = await client.chat.completions.acreate(
 )
 ```
 
-### 📡 Streaming support (JavaScript, OpenAI)
-Streaming responses are tracked automatically. Chunks pass through unchanged to your application, and token usage is captured once the stream completes:
+### 📡 Streaming support (OpenAI)
+Streaming responses are tracked automatically. Chunks pass through unchanged to your application, and token usage is captured once the stream completes.
 
+**JavaScript**
 ```javascript
 const stream = await client.chat.completions.create({
   model: 'gpt-4o',
@@ -196,7 +197,22 @@ for await (const chunk of stream) {
 // Tracking fires automatically once the stream ends
 ```
 
-Note: streaming responses skip the cache lookup and are not cached in this version.
+**Python**
+```python
+stream = client.chat.completions.create(
+    model='gpt-4o',
+    messages=[{'role': 'user', 'content': 'Hello'}],
+    stream=True
+)
+
+for chunk in stream:
+    delta = chunk.choices[0].delta.content if chunk.choices else None
+    if delta:
+        print(delta, end='', flush=True)
+# Tracking fires automatically once the stream ends
+```
+
+Note: streaming responses skip the cache lookup and are not cached in this version. Anthropic and Gemini streaming support is coming soon.
 
 ---
 
@@ -259,6 +275,9 @@ Sign in at [app.tokoscope.com](https://app.tokoscope.com) to:
 ---
 
 ## Changelog
+
+### v0.7.0 (Python)
+- Streaming support for OpenAI — chunks pass through unchanged, usage tracked on stream completion
 
 ### v0.6.0 (JavaScript)
 - Streaming support for OpenAI — chunks pass through unchanged, usage tracked on stream completion
