@@ -1,6 +1,6 @@
 {
   "name": "tokoscope",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Audit, compress and monitor your LLM token usage in 2 lines of code",
   "main": "index.js",
   "keywords": [

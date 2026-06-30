@@ -124,6 +124,17 @@ function wrap(client, { apiKey, userId = null }) {
   client.chat.completions.create = async function(params) {
     const prompt = params.messages?.map(m => m.content || '').join(' ')
 
+    // ── Streaming requests ──────────────────────────────────
+    if (params.stream) {
+      const streamParams = {
+        ...params,
+        stream_options: { ...(params.stream_options || {}), include_usage: true }
+      }
+      const stream = await originalCreate(streamParams)
+      return wrapOpenAIStream(stream, { prompt, model: params.model, track })
+    }
+
+    // ── Non-streaming requests ──────────────────────────────
     const cache = await checkCache(prompt, params.model)
     if (cache.hit) {
       console.log(`⚡ Tokoscope cache hit — saved ${cache.savedTokens} tokens ($${cache.savedCost?.toFixed(6)})`)
@@ -144,6 +155,30 @@ function wrap(client, { apiKey, userId = null }) {
   }
 
   return client
+}
+
+// Wraps an OpenAI streaming response. Passes chunks through unchanged
+// to the caller, while accumulating usage data in the background.
+// Tracking fires once the stream completes.
+async function* wrapOpenAIStream(stream, { prompt, model, track }) {
+  let usage = null
+
+  try {
+    for await (const chunk of stream) {
+      if (chunk.usage) usage = chunk.usage
+      yield chunk
+    }
+  } finally {
+    track({
+      provider: 'openai',
+      model,
+      inputTokens: usage?.prompt_tokens || 0,
+      outputTokens: usage?.completion_tokens || 0,
+      prompt,
+      endpoint: model,
+      response: null
+    })
+  }
 }
 
 module.exports = { wrap }
